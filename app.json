@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Pool Roulette",
-    "slug": "pool-roulette",
+    "slug": "poolroulette",
     "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -39,7 +39,7 @@
         "origin": false
       },
       "eas": {
-        "projectId": "8fa6416a-fb62-46f6-b686-e8f39dc2934e"
+        "projectId": "86b5b8ea-27ff-479b-887a-3719f5f673f6"
       }
     },
     "owner": "hepi420"

@@ -8,7 +8,6 @@ import {
   Alert,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { StatusBar } from "expo-status-bar";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   useFonts,
@@ -101,11 +100,6 @@ export default function PoolRouletteScreen() {
       if (newPlayers >= MIN_PLAYERS && newPlayers * perRoll <= TOTAL_BALLS) {
         setPlayers(newPlayers);
         reset();
-      } else {
-        Alert.alert(
-          "Invalid Setting",
-          `The number of players must be at least ${MIN_PLAYERS} and the total balls (players * balls per roll) must not exceed ${TOTAL_BALLS}.`
-        );
       }
     },
     [players, perRoll, reset]
@@ -121,11 +115,6 @@ export default function PoolRouletteScreen() {
       ) {
         setPerRoll(newPerRoll);
         reset();
-      } else {
-        Alert.alert(
-          "Invalid Setting",
-          `The number of balls per roll must be between ${MIN_BALLS_PER_ROLL} and ${maxBallsPerRoll()}, and the total balls (players * balls per roll) must not exceed ${TOTAL_BALLS}.`
-        );
       }
     },
     [players, perRoll, maxBallsPerRoll, reset]
@@ -156,7 +145,9 @@ export default function PoolRouletteScreen() {
                   >
                     <Text style={styles.buttonText}>-</Text>
                   </Pressable>
-                  <Text style={{...styles.label, marginBottom:0}}>{players}</Text>
+                  <Text style={{ ...styles.label, marginBottom: 0 }}>
+                    {players}
+                  </Text>
                   <Pressable
                     style={styles.button}
                     onPress={() => adjustPlayers(1)}
@@ -173,7 +164,9 @@ export default function PoolRouletteScreen() {
                   >
                     <Text style={styles.buttonText}>-</Text>
                   </Pressable>
-                  <Text style={{...styles.label, marginBottom:0}}>{perRoll}</Text>
+                  <Text style={{ ...styles.label, marginBottom: 0 }}>
+                    {perRoll}
+                  </Text>
                   <Pressable
                     style={styles.button}
                     onPress={() => adjustPerRoll(1)}
@@ -239,12 +232,11 @@ export default function PoolRouletteScreen() {
                 </Pressable>
               )}
 
-              {currentPlayer == players && gameState == 'playing' && (
+              {currentPlayer == players && gameState == "playing" && (
                 <Pressable style={styles.mainButton} onPress={reset}>
                   <Text style={styles.mainButtonText}>Play Again</Text>
                 </Pressable>
               )}
-
             </View>
           </View>
           {gameState !== "setup" && (

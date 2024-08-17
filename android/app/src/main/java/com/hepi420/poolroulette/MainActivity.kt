@@ -1,4 +1,4 @@
-package com.hepi420.pool
+package com.hepi420.poolroulette
 
 import android.os.Build
 import android.os.Bundle

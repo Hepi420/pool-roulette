@@ -109,7 +109,7 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace 'com.hepi420.pool'
+    namespace 'com.hepi420.poolroulette'
     defaultConfig {
         applicationId 'com.hepi420.poolroulette'
         minSdkVersion rootProject.ext.minSdkVersion
