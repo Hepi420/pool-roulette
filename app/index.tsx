@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import {
   StyleSheet,
   Pressable,
@@ -18,9 +18,7 @@ import {
 
 const TOTAL_BALLS = 15;
 const MIN_PLAYERS = 2;
-const MAX_PLAYERS = 5;
 const MIN_BALLS_PER_ROLL = 1;
-const MAX_BALLS_PER_ROLL = 7;
 
 type Roll = {
   player: number;
@@ -44,6 +42,19 @@ export default function PoolRouletteScreen() {
   );
   const [gameState, setGameState] = useState<GameState>("setup");
 
+  const maxBallsPerRoll = useCallback(() => {
+    return Math.min(
+      Math.floor(TOTAL_BALLS / players),
+      TOTAL_BALLS - players + 1
+    );
+  }, [players]);
+
+  useEffect(() => {
+    if (perRoll > maxBallsPerRoll()) {
+      setPerRoll(maxBallsPerRoll());
+    }
+  }, [players, perRoll, maxBallsPerRoll]);
+
   const reset = useCallback(() => {
     setCurrentPlayer(1);
     setRolls([]);
@@ -52,9 +63,8 @@ export default function PoolRouletteScreen() {
   }, []);
 
   const startGame = useCallback(() => {
-    // Shuffle the balls
     setAvailableBalls(availableBalls.sort(() => Math.random() - 0.5));
-    const firstRoll = availableBalls.slice(0, perRoll)
+    const firstRoll = availableBalls.slice(0, perRoll);
     setRolls([{ player: 1, balls: firstRoll }]);
     setAvailableBalls(availableBalls.slice(perRoll));
     setGameState("playing");
@@ -88,38 +98,37 @@ export default function PoolRouletteScreen() {
   const adjustPlayers = useCallback(
     (increment: number) => {
       const newPlayers = players + increment;
-      if (newPlayers >= MIN_PLAYERS && newPlayers <= MAX_PLAYERS) {
-        const maxBallsPerRoll = Math.min(
-          MAX_BALLS_PER_ROLL,
-          Math.floor(TOTAL_BALLS / newPlayers)
-        );
+      if (newPlayers >= MIN_PLAYERS && newPlayers * perRoll <= TOTAL_BALLS) {
         setPlayers(newPlayers);
-        setPerRoll((prev) => Math.min(prev, maxBallsPerRoll));
         reset();
+      } else {
+        Alert.alert(
+          "Invalid Setting",
+          `The number of players must be at least ${MIN_PLAYERS} and the total balls (players * balls per roll) must not exceed ${TOTAL_BALLS}.`
+        );
       }
     },
-    [players, reset]
+    [players, perRoll, reset]
   );
 
   const adjustPerRoll = useCallback(
     (increment: number) => {
       const newPerRoll = perRoll + increment;
-      const maxBallsPerRoll = Math.min(
-        MAX_BALLS_PER_ROLL,
-        Math.floor(TOTAL_BALLS / players)
-      );
-
-      if (newPerRoll >= MIN_BALLS_PER_ROLL && newPerRoll <= maxBallsPerRoll) {
+      if (
+        newPerRoll >= MIN_BALLS_PER_ROLL &&
+        newPerRoll <= maxBallsPerRoll() &&
+        players * newPerRoll <= TOTAL_BALLS
+      ) {
         setPerRoll(newPerRoll);
         reset();
       } else {
         Alert.alert(
           "Invalid Setting",
-          `The number of balls per roll must be between ${MIN_BALLS_PER_ROLL} and ${maxBallsPerRoll} for ${players} players.`
+          `The number of balls per roll must be between ${MIN_BALLS_PER_ROLL} and ${maxBallsPerRoll()}, and the total balls (players * balls per roll) must not exceed ${TOTAL_BALLS}.`
         );
       }
     },
-    [perRoll, players, reset]
+    [players, perRoll, maxBallsPerRoll, reset]
   );
 
   if (!fontsLoaded) {
@@ -128,10 +137,9 @@ export default function PoolRouletteScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar style="light" />
       <LinearGradient colors={["#1e3c72", "#2a5298"]} style={styles.background}>
         <ImageBackground
-          source={require("../../assets/images/snooker.webp")}
+          source={require("../assets/images/pool.webp")}
           style={styles.backgroundImage}
           imageStyle={{ opacity: 0.1 }}
         >
@@ -148,6 +156,7 @@ export default function PoolRouletteScreen() {
                   >
                     <Text style={styles.buttonText}>-</Text>
                   </Pressable>
+                  <Text style={{...styles.label, marginBottom:0}}>{players}</Text>
                   <Pressable
                     style={styles.button}
                     onPress={() => adjustPlayers(1)}
@@ -164,6 +173,7 @@ export default function PoolRouletteScreen() {
                   >
                     <Text style={styles.buttonText}>-</Text>
                   </Pressable>
+                  <Text style={{...styles.label, marginBottom:0}}>{perRoll}</Text>
                   <Pressable
                     style={styles.button}
                     onPress={() => adjustPerRoll(1)}
@@ -210,10 +220,6 @@ export default function PoolRouletteScreen() {
               </View>
             )}
 
-            <Text style={styles.remainingBalls}>
-              Balls left: {availableBalls.length}
-            </Text>
-
             <View style={styles.buttonContainer}>
               {gameState === "setup" && (
                 <Pressable style={styles.mainButton} onPress={startGame}>
@@ -232,13 +238,20 @@ export default function PoolRouletteScreen() {
                   <Text style={styles.mainButtonText}>Show My Balls</Text>
                 </Pressable>
               )}
+
+              {currentPlayer == players && gameState == 'playing' && (
+                <Pressable style={styles.mainButton} onPress={reset}>
+                  <Text style={styles.mainButtonText}>Play Again</Text>
+                </Pressable>
+              )}
+
             </View>
           </View>
           {gameState !== "setup" && (
-                <Pressable style={styles.resetButtonMidGame} onPress={reset}>
-                  <Text style={styles.resetButtonText}>Reset Game</Text>
-                </Pressable>
-              )}
+            <Pressable style={styles.resetButtonMidGame} onPress={reset}>
+              <Text style={styles.resetButtonText}>Reset Game</Text>
+            </Pressable>
+          )}
         </ImageBackground>
       </LinearGradient>
     </SafeAreaView>
@@ -255,6 +268,7 @@ const styles = StyleSheet.create({
   },
   backgroundImage: {
     flex: 1,
+    overflow: "hidden",
     resizeMode: "cover",
   },
   content: {
@@ -265,7 +279,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: "Roboto_700Bold",
-    fontSize: 36,
+    fontSize: 48,
     color: "#ffffff",
     marginBottom: 30,
   },
@@ -275,7 +289,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontFamily: "Roboto_400Regular",
-    fontSize: 18,
+    fontSize: 24,
     color: "#ffffff",
     marginBottom: 10,
   },
@@ -294,7 +308,7 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     fontFamily: "Roboto_700Bold",
-    fontSize: 18,
+    fontSize: 24,
     color: "#ffffff",
   },
   gameContainer: {
@@ -365,7 +379,6 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     minWidth: 150,
     alignItems: "center",
-
   },
   resetButtonText: {
     fontFamily: "Roboto_400Regular",

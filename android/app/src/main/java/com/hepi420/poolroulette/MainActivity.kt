@@ -1,4 +1,4 @@
-package com.hepi420.snooker
+package com.hepi420.pool
 
 import android.os.Build
 import android.os.Bundle

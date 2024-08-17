@@ -44,7 +44,7 @@ if (getRNMinorVersion() >= 75) {
   }
 }
 
-rootProject.name = 'snooker-roulette'
+rootProject.name = 'Pool Roulette'
 
 dependencyResolutionManagement {
   versionCatalogs {
