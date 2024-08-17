@@ -1,70 +1,375 @@
-import { Image, StyleSheet, Platform } from 'react-native';
+import React, { useState, useCallback } from "react";
+import {
+  StyleSheet,
+  Pressable,
+  Text,
+  ImageBackground,
+  View,
+  Alert,
+} from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { StatusBar } from "expo-status-bar";
+import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  useFonts,
+  Roboto_400Regular,
+  Roboto_700Bold,
+} from "@expo-google-fonts/roboto";
 
-import { HelloWave } from '@/components/HelloWave';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
+const TOTAL_BALLS = 15;
+const MIN_PLAYERS = 2;
+const MAX_PLAYERS = 5;
+const MIN_BALLS_PER_ROLL = 1;
+const MAX_BALLS_PER_ROLL = 7;
 
-export default function HomeScreen() {
+type Roll = {
+  player: number;
+  balls: number[];
+};
+
+type GameState = "setup" | "playing" | "betweenTurns" | "gameOver";
+
+export default function PoolRouletteScreen() {
+  let [fontsLoaded] = useFonts({
+    Roboto_400Regular,
+    Roboto_700Bold,
+  });
+
+  const [players, setPlayers] = useState(2);
+  const [perRoll, setPerRoll] = useState(3);
+  const [currentPlayer, setCurrentPlayer] = useState(1);
+  const [rolls, setRolls] = useState<Roll[]>([]);
+  const [availableBalls, setAvailableBalls] = useState<number[]>(
+    Array.from({ length: TOTAL_BALLS }, (_, i) => i + 1)
+  );
+  const [gameState, setGameState] = useState<GameState>("setup");
+
+  const reset = useCallback(() => {
+    setCurrentPlayer(1);
+    setRolls([]);
+    setAvailableBalls(Array.from({ length: TOTAL_BALLS }, (_, i) => i + 1));
+    setGameState("setup");
+  }, []);
+
+  const startGame = useCallback(() => {
+    // Shuffle the balls
+    setAvailableBalls(availableBalls.sort(() => Math.random() - 0.5));
+    const firstRoll = availableBalls.slice(0, perRoll)
+    setRolls([{ player: 1, balls: firstRoll }]);
+    setAvailableBalls(availableBalls.slice(perRoll));
+    setGameState("playing");
+  }, [availableBalls, perRoll]);
+
+  const roll = useCallback(() => {
+    if (availableBalls.length < perRoll) {
+      Alert.alert(
+        "Not enough balls",
+        "There are not enough balls left for this roll."
+      );
+      return;
+    }
+
+    const newRoll = availableBalls.slice(0, perRoll).sort((a, b) => a - b);
+    setRolls([...rolls, { player: currentPlayer, balls: newRoll }]);
+    setAvailableBalls(availableBalls.slice(perRoll));
+
+    if (currentPlayer < players) {
+      setGameState("betweenTurns");
+      setCurrentPlayer((prevPlayer) => prevPlayer + 1);
+    } else {
+      setGameState("gameOver");
+    }
+  }, [availableBalls, perRoll, rolls, currentPlayer, players]);
+
+  const nextPlayer = useCallback(() => {
+    setGameState("playing");
+  }, []);
+
+  const adjustPlayers = useCallback(
+    (increment: number) => {
+      const newPlayers = players + increment;
+      if (newPlayers >= MIN_PLAYERS && newPlayers <= MAX_PLAYERS) {
+        const maxBallsPerRoll = Math.min(
+          MAX_BALLS_PER_ROLL,
+          Math.floor(TOTAL_BALLS / newPlayers)
+        );
+        setPlayers(newPlayers);
+        setPerRoll((prev) => Math.min(prev, maxBallsPerRoll));
+        reset();
+      }
+    },
+    [players, reset]
+  );
+
+  const adjustPerRoll = useCallback(
+    (increment: number) => {
+      const newPerRoll = perRoll + increment;
+      const maxBallsPerRoll = Math.min(
+        MAX_BALLS_PER_ROLL,
+        Math.floor(TOTAL_BALLS / players)
+      );
+
+      if (newPerRoll >= MIN_BALLS_PER_ROLL && newPerRoll <= maxBallsPerRoll) {
+        setPerRoll(newPerRoll);
+        reset();
+      } else {
+        Alert.alert(
+          "Invalid Setting",
+          `The number of balls per roll must be between ${MIN_BALLS_PER_ROLL} and ${maxBallsPerRoll} for ${players} players.`
+        );
+      }
+    },
+    [perRoll, players, reset]
+  );
+
+  if (!fontsLoaded) {
+    return null;
+  }
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({ ios: 'cmd + d', android: 'cmd + m' })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-        <ThemedText>
-          Tap the Explore tab to learn more about what's included in this starter app.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          When you're ready, run{' '}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+    <SafeAreaView style={styles.container}>
+      <StatusBar style="light" />
+      <LinearGradient colors={["#1e3c72", "#2a5298"]} style={styles.background}>
+        <ImageBackground
+          source={require("../../assets/images/snooker.webp")}
+          style={styles.backgroundImage}
+          imageStyle={{ opacity: 0.1 }}
+        >
+          <View style={styles.content}>
+            <Text style={styles.title}>Pool Roulette</Text>
+
+            {gameState === "setup" && (
+              <View style={styles.setupContainer}>
+                <Text style={styles.label}>Players: {players}</Text>
+                <View style={styles.buttonContainer}>
+                  <Pressable
+                    style={styles.button}
+                    onPress={() => adjustPlayers(-1)}
+                  >
+                    <Text style={styles.buttonText}>-</Text>
+                  </Pressable>
+                  <Pressable
+                    style={styles.button}
+                    onPress={() => adjustPlayers(1)}
+                  >
+                    <Text style={styles.buttonText}>+</Text>
+                  </Pressable>
+                </View>
+
+                <Text style={styles.label}>Balls per roll: {perRoll}</Text>
+                <View style={styles.buttonContainer}>
+                  <Pressable
+                    style={styles.button}
+                    onPress={() => adjustPerRoll(-1)}
+                  >
+                    <Text style={styles.buttonText}>-</Text>
+                  </Pressable>
+                  <Pressable
+                    style={styles.button}
+                    onPress={() => adjustPerRoll(1)}
+                  >
+                    <Text style={styles.buttonText}>+</Text>
+                  </Pressable>
+                </View>
+              </View>
+            )}
+
+            {gameState === "playing" && (
+              <View style={styles.gameContainer}>
+                <Text style={styles.playerTurn}>
+                  Player {currentPlayer}'s Balls
+                </Text>
+                <View style={styles.ballsContainer}>
+                  {rolls[rolls.length - 1].balls.map((ball) => (
+                    <View key={ball} style={styles.ball}>
+                      <Text style={styles.ballText}>{ball}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
+
+            {gameState === "betweenTurns" && (
+              <View style={styles.gameContainer}>
+                <Text style={styles.playerTurn}>
+                  Pass the phone to Player {currentPlayer}
+                </Text>
+              </View>
+            )}
+
+            {gameState === "gameOver" && (
+              <View style={styles.gameContainer}>
+                <Text style={styles.playerTurn}>Game Over</Text>
+                <View style={styles.ballsContainer}>
+                  {rolls[rolls.length - 1].balls.map((ball) => (
+                    <View key={ball} style={styles.ball}>
+                      <Text style={styles.ballText}>{ball}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
+
+            <Text style={styles.remainingBalls}>
+              Balls left: {availableBalls.length}
+            </Text>
+
+            <View style={styles.buttonContainer}>
+              {gameState === "setup" && (
+                <Pressable style={styles.mainButton} onPress={startGame}>
+                  <Text style={styles.mainButtonText}>Start Game</Text>
+                </Pressable>
+              )}
+
+              {gameState === "playing" && currentPlayer < players && (
+                <Pressable style={styles.mainButton} onPress={roll}>
+                  <Text style={styles.mainButtonText}>Next Player</Text>
+                </Pressable>
+              )}
+
+              {gameState === "betweenTurns" && (
+                <Pressable style={styles.mainButton} onPress={nextPlayer}>
+                  <Text style={styles.mainButtonText}>Show My Balls</Text>
+                </Pressable>
+              )}
+            </View>
+          </View>
+          {gameState !== "setup" && (
+                <Pressable style={styles.resetButtonMidGame} onPress={reset}>
+                  <Text style={styles.resetButtonText}>Reset Game</Text>
+                </Pressable>
+              )}
+        </ImageBackground>
+      </LinearGradient>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  container: {
+    flex: 1,
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  background: {
+    position: "relative",
+    flex: 1,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  backgroundImage: {
+    flex: 1,
+    resizeMode: "cover",
+  },
+  content: {
+    flex: 1,
+    padding: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  title: {
+    fontFamily: "Roboto_700Bold",
+    fontSize: 36,
+    color: "#ffffff",
+    marginBottom: 30,
+  },
+  setupContainer: {
+    alignItems: "center",
+    marginBottom: 30,
+  },
+  label: {
+    fontFamily: "Roboto_400Regular",
+    fontSize: 18,
+    color: "#ffffff",
+    marginBottom: 10,
+  },
+  buttonContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginVertical: 20,
+  },
+  button: {
+    backgroundColor: "rgba(255, 255, 255, 0.3)",
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 5,
+    marginHorizontal: 10,
+  },
+  buttonText: {
+    fontFamily: "Roboto_700Bold",
+    fontSize: 18,
+    color: "#ffffff",
+  },
+  gameContainer: {
+    alignItems: "center",
+    marginBottom: 30,
+  },
+  playerTurn: {
+    fontFamily: "Roboto_700Bold",
+    fontSize: 24,
+    color: "#ffffff",
+    marginBottom: 15,
+    textAlign: "center",
+  },
+  ballsContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    flexWrap: "wrap",
+  },
+  ball: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: "#ffffff",
+    justifyContent: "center",
+    alignItems: "center",
+    margin: 5,
+  },
+  ballText: {
+    fontFamily: "Roboto_700Bold",
+    fontSize: 18,
+    color: "#1e3c72",
+  },
+  remainingBalls: {
+    fontFamily: "Roboto_400Regular",
+    fontSize: 18,
+    color: "#ffffff",
+    marginBottom: 20,
+  },
+  mainButton: {
+    backgroundColor: "#4CAF50",
+    paddingVertical: 15,
+    paddingHorizontal: 30,
+    borderRadius: 10,
+    marginBottom: 15,
+    minWidth: 200,
+    alignItems: "center",
+  },
+  mainButtonText: {
+    fontFamily: "Roboto_700Bold",
+    fontSize: 18,
+    color: "#ffffff",
+  },
+  resetButton: {
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 5,
+    minWidth: 200,
+    alignItems: "center",
+  },
+  resetButtonMidGame: {
+    position: "absolute",
+    bottom: 20,
+    left: 20,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    paddingVertical: 10,
+    paddingHorizontal: 10,
+    borderRadius: 5,
+    minWidth: 150,
+    alignItems: "center",
+
+  },
+  resetButtonText: {
+    fontFamily: "Roboto_400Regular",
+    fontSize: 16,
+    color: "#ffffff",
   },
 });
